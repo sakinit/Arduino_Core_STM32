@@ -17,7 +17,11 @@
 int address = 0;
 
 void setup() {
-  /** EMpty setup **/
+  Serial.begin(9600);
+  while (!Serial) {
+    ; // wait for serial port to connect. Needed for native USB port only
+  }
+  EEPROM.begin();
 }
 
 void loop() {
@@ -58,6 +62,11 @@ void loop() {
   address = address + 1;
   if (address == EEPROM.length()) {
     address = 0;
+    if (EEPROM.commit()) {
+      Serial.println("EEPROM successfully committed");
+    } else {
+      Serial.println("ERROR! EEPROM commit failed");
+    }
   }
 
   /***

@@ -39,7 +39,7 @@ struct EERef {
   //Access/read members.
   uint8_t operator*() const
   {
-    return eeprom_read_byte(/*(uint8_t*)*/ index);
+    return eeprom_buffered_read_byte(/*(uint8_t*)*/ index);
   }
   operator uint8_t() const
   {
@@ -51,10 +51,8 @@ struct EERef {
   {
     return *this = *ref;
   }
-  EERef &operator=(uint8_t in)
-  {
-    return eeprom_write_byte(/*(uint8_t*)*/ index, in), *this;
-  }
+  EERef &operator=(uint8_t in);
+
   EERef &operator +=(uint8_t in)
   {
     return *this = **this + in;
@@ -190,6 +188,8 @@ struct EEPtr {
 
 struct EEPROMClass {
 
+  EEPROMClass() : dirty(false) {}
+
   //Basic user access methods.
   EERef operator[](const int idx)
   {
@@ -211,11 +211,22 @@ struct EEPROMClass {
   //STL and C++11 iteration capability.
   EEPtr begin()
   {
+    eeprom_buffer_fill();
+    dirty = false;
     return 0x00;
   }
   EEPtr end()
   {
+    commit();
     return length();  //Standards requires this to be the item after the last valid entry. The returned pointer is invalid.
+  }
+  bool commit()
+  {
+    if (dirty) {
+      eeprom_buffer_flush();
+      dirty = false;
+    }
+    return true;
   }
   uint16_t length()
   {
@@ -242,7 +253,10 @@ struct EEPROMClass {
     }
     return t;
   }
+
+  bool dirty;
 };
 
-static EEPROMClass EEPROM;
+extern EEPROMClass EEPROM;
+
 #endif

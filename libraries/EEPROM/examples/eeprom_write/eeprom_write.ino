@@ -12,7 +12,11 @@
 int addr = 0;
 
 void setup() {
-  /** Empty setup. **/
+  Serial.begin(9600);
+  while (!Serial) {
+    ; // wait for serial port to connect. Needed for native USB port only
+  }
+  EEPROM.begin();
 }
 
 void loop() {
@@ -46,6 +50,11 @@ void loop() {
   addr = addr + 1;
   if (addr == EEPROM.length()) {
     addr = 0;
+    if (EEPROM.commit()) {
+      Serial.println("EEPROM successfully committed");
+    } else {
+      Serial.println("ERROR! EEPROM commit failed");
+    }
   }
 
   /***

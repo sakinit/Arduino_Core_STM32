@@ -17,6 +17,7 @@ void setup() {
   while (!Serial) {
     ; // wait for serial port to connect. Needed for native USB port only
   }
+  EEPROM.begin();
 
   //Print length of data to run CRC on.
   Serial.print("EEPROM length: ");
@@ -25,6 +26,8 @@ void setup() {
   //Print the result of calling eeprom_crc()
   Serial.print("CRC32 of EEPROM data: 0x");
   Serial.println(eeprom_crc(), HEX);
+
+  EEPROM.end();
   Serial.print("\n\nDone!");
 }
 

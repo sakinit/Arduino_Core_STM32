@@ -13,6 +13,8 @@
 void setup() {
   // initialize the LED pin as an output.
   pinMode(13, OUTPUT);
+
+  EEPROM.begin();
   
   /***
     Iterate through each byte of the EEPROM storage.
@@ -29,6 +31,8 @@ void setup() {
   for (int i = 0 ; i < EEPROM.length() ; i++) {
     EEPROM.write(i, 0);
   }
+
+  EEPROM.end();
 
   // turn the LED on when we're done
   digitalWrite(13, HIGH);

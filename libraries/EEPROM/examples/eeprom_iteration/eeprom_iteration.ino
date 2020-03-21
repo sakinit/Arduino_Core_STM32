@@ -15,6 +15,8 @@
 
 void setup() {
 
+  EEPROM.begin();
+
   /***
     Iterate the EEPROM using a for loop.
   ***/
@@ -51,6 +53,7 @@ void setup() {
     idx++;
   } while (idx < EEPROM.length());
 
+  EEPROM.end();
 
 } //End of setup function.
 
