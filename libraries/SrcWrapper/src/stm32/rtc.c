@@ -62,11 +62,10 @@ static void *callbackUserData = NULL;
 
 static sourceClock_t clkSrc = LSI_CLOCK;
 static uint8_t HSEDiv = 0;
-#if !defined(STM32F1xx)
+
 /* Custom user values */
 static int8_t userPredivAsync = -1;
 static int16_t userPredivSync = -1;
-#endif /* !STM32F1xx */
 
 static hourFormat_t initFormat = HOUR_FORMAT_12;
 
@@ -214,8 +213,10 @@ void RTC_setPrediv(int8_t asynch, int16_t synch)
     userPredivSync = synch;
   }
 #else
-  UNUSED(asynch);
-  UNUSED(synch);
+  if (asynch >= -1) {
+    userPredivAsync = asynch;
+    userPredivSync = synch;
+  }
 #endif /* !STM32F1xx */
 }
 
@@ -238,8 +239,10 @@ void RTC_getPrediv(int8_t *asynch, int16_t *synch)
     }
   }
 #else
-  UNUSED(asynch);
-  UNUSED(synch);
+  if ((asynch != NULL) && (synch != NULL)) {
+    *asynch = userPredivAsync;
+    *synch = userPredivSync;
+  }
 #endif /* !STM32F1xx */
 }
 
@@ -298,6 +301,45 @@ static void RTC_computePrediv(int8_t *asynch, int16_t *synch)
 #endif /* !STM32F1xx */
 
 /**
+  * @brief RTC Calibration
+  *        This function calibrates the RTC (See AN2604 Application note).
+  *        By default the calibration is set to 0.
+  * @note  Call after RTC_Init() as the backup domain might get reset
+  *        when RTC_Init() or RTC_initClock() get called.
+  * @param minusPulsesValue: specifies the RTC Clock Calibration value
+  * @retval None
+  */
+void RTC_setCalib(uint32_t minusPulsesValue) // sakinit
+{
+#ifdef RTC_CALR_CALM
+  const uint32_t Calib_Mask = RTC_CALR_CALM;
+#elif defined(STM32F1xx)
+  const uint32_t Calib_Mask = 0x7FU;
+#endif
+  HAL_RTCEx_SetSmoothCalib(&RtcHandle, 0, 0, minusPulsesValue & Calib_Mask);
+}
+
+/**
+  * @brief  Returns the rtc peripheral clock frequency
+  * @note   Returns 0 if rtc peripheral clock is unknown (e.g. clock is not configured)
+  * @retval Frequency in Hz (0: means that no available frequency for the peripheral)
+  */
+uint32_t RTC_getDefaultClockFrequency() //sakinit
+{
+ return HAL_RCCEx_GetPeriphCLKFreq(RCC_PERIPHCLK_RTC);
+}
+
+/**
+  * @brief Return RTC Calibration value
+  *        This function returns the calibration value.
+  * @retval the RTC Clock Calibration value
+  */
+uint32_t RTC_getCalib()  // sakinit
+{
+  return LL_RTC_CAL_GetCoarseDigital(BKP);
+}
+
+/**
   * @brief RTC Initialization
   *        This function configures the RTC time and calendar. By default, the
   *        RTC is set to the 1st January 2017 0:0:0:00
@@ -318,8 +360,14 @@ void RTC_init(hourFormat_t format, sourceClock_t source, bool reset)
   RtcHandle.Instance = RTC;
 
 #if defined(STM32F1xx)
+  if (userPredivAsync > -1) {
+    /* Use the user specified value for the prescaler. */
+    userPredivAsync &= 0x0F; // RTC_PRLH size 4 bits
+    RtcHandle.Init.AsynchPrediv = (((uint32_t)userPredivAsync) << 16) + (uint32_t)userPredivSync;
+  } else {
   /* Let HAL calculate the prescaler */
   RtcHandle.Init.AsynchPrediv = RTC_AUTO_1_SECOND;
+  }
   RtcHandle.Init.OutPut = RTC_OUTPUTSOURCE_NONE;
   UNUSED(format);
 #else
