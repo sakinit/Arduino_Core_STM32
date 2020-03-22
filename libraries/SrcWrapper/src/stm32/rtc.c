@@ -66,6 +66,7 @@ static uint8_t HSEDiv = 0;
 /* Custom user values */
 static int8_t userPredivAsync = -1;
 static int16_t userPredivSync = -1;
+static uint32_t userCalib = 0;
 
 static hourFormat_t initFormat = HOUR_FORMAT_12;
 
@@ -316,7 +317,8 @@ void RTC_setCalib(uint32_t minusPulsesValue) // sakinit
 #elif defined(STM32F1xx)
   const uint32_t Calib_Mask = 0x7FU;
 #endif
-  HAL_RTCEx_SetSmoothCalib(&RtcHandle, 0, 0, minusPulsesValue & Calib_Mask);
+  userCalib = minusPulsesValue & Calib_Mask;
+  HAL_RTCEx_SetSmoothCalib(&RtcHandle, 0, 0, userCalib);
 }
 
 /**
@@ -336,7 +338,11 @@ uint32_t RTC_getDefaultClockFrequency() //sakinit
   */
 uint32_t RTC_getCalib()  // sakinit
 {
+#if defined(STM32F1xx)
   return LL_RTC_CAL_GetCoarseDigital(BKP);
+#else
+  return userCalib;
+#endif
 }
 
 /**
